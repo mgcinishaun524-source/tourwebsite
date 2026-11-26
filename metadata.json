@@ -1,0 +1,6 @@
+{
+  "name": "Victoria Falls — Luxury Travel & Safari Curators",
+  "description": "Discover Africa. Experience Wonder. Curated luxury travel, safari experiences, private river journeys, and bespoke itineraries in Victoria Falls, Zimbabwe.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

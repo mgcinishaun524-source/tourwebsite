@@ -187,6 +187,74 @@ adminRouter.patch(
           },
           { onConflict: 'supplier_id,provider_code,settlement_currency' },
         );
+
+        adminRouter.patch(
+          '/suppliers/:id/operator-profile',
+          requireAuth,
+          requireRoles(['operations', 'content_manager', 'admin', 'super_admin'], { requireMfa: true }),
+          async (req: AuthRequest, res) => {
+            const supplierId = String(req.params.id);
+            const parsed = z.object({
+              directoryStatus: z.enum(['draft', 'submitted', 'published', 'suspended']),
+              isFeatured: z.boolean().optional(),
+            }).safeParse(req.body);
+            if (!z.string().uuid().safeParse(supplierId).success) {
+              res.status(400).json({ error: 'Invalid supplier ID.' });
+              return;
+            }
+            if (!parsed.success) {
+              res.status(400).json({ error: 'Invalid operator directory payload', issues: parsed.error.issues });
+              return;
+            }
+
+            try {
+              const supabase = requireSupabaseAdmin();
+              const { data: supplier } = await supabase
+                .from('suppliers')
+                .select('id, verification_status')
+                .eq('id', supplierId)
+                .maybeSingle();
+              if (!supplier) {
+                res.status(404).json({ error: 'Supplier not found.' });
+                return;
+              }
+              if (parsed.data.directoryStatus === 'published' && supplier.verification_status !== 'approved') {
+                res.status(400).json({ error: 'Only approved suppliers may be published in the public directory.' });
+                return;
+              }
+
+              const payload: Record<string, unknown> = { directory_status: parsed.data.directoryStatus };
+              if (parsed.data.isFeatured !== undefined) payload.is_featured = parsed.data.isFeatured;
+              const { data: profile, error } = await supabase
+                .from('operator_profiles')
+                .update(payload)
+                .eq('supplier_id', supplierId)
+                .select('*')
+                .maybeSingle();
+              if (error) throw error;
+              if (!profile) {
+                res.status(404).json({ error: 'Operator profile has not been created.' });
+                return;
+              }
+
+              await recordAuditLog({
+                actorUserId: req.authUser!.id,
+                action: 'OPERATOR_DIRECTORY_STATUS_UPDATED',
+                resourceType: 'operator_profile',
+                resourceId: supplierId,
+                afterState: payload,
+                ipAddress: req.ip || null,
+              });
+              res.json({ profile });
+            } catch (err) {
+              if (err instanceof ConfigurationRequiredError) {
+                res.status(err.statusCode).json({ error: err.message, missingVars: err.missingVars });
+                return;
+              }
+              res.status(500).json({ error: 'Unable to update operator directory status.' });
+            }
+          },
+        );
       }
 
       const canAcceptPaid = input.verificationStatus === 'approved';

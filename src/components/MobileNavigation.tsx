@@ -13,6 +13,7 @@ interface MobileNavigationProps {
 
 const MOBILE_LINKS = [
   { label: 'Home', to: '/' },
+  { label: 'Safari Tour Operators', to: '/operators' },
   { label: 'Experiences', to: '/experiences' },
   { label: 'Travel Packages', to: '/packages' },
   { label: 'Destinations', to: '/destinations' },

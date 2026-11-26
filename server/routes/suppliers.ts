@@ -41,6 +41,23 @@ const agreementSchema = z.object({
   accepted: z.literal(true),
 });
 
+const operatorProfileSchema = z.object({
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(3).max(140),
+  coverImageUrl: z.string().url().max(1000).nullable().optional(),
+  coverImageAlt: z.string().max(240).optional().default(''),
+  logoUrl: z.string().url().max(1000).nullable().optional(),
+  companyDescription: z.string().min(20).max(4000),
+  officeLocation: z.string().max(240).optional().default(''),
+  countriesServed: z.array(z.string().min(2).max(80)).max(20).default([]),
+  destinationIds: z.array(z.string().uuid()).max(100).default([]),
+  categories: z.array(z.string().min(2).max(80)).max(30).default([]),
+  priceMinMinor: z.number().int().min(0).nullable().optional(),
+  priceMaxMinor: z.number().int().min(0).nullable().optional(),
+  currencyCode: z.enum(['USD', 'ZWG']).default('USD'),
+  priceTier: z.enum(['budget', 'mid-range', 'luxury', 'custom']).default('custom'),
+  submitForReview: z.boolean().default(false),
+});
+
 const listingSchema = z.object({
   listingType: z.enum(['experience', 'accommodation', 'transport']),
   name: z.string().min(3).max(140),
@@ -176,6 +193,101 @@ suppliersRouter.post('/onboarding', requireAuth, async (req: AuthRequest, res) =
   }
 });
 
+suppliersRouter.put('/me/operator-profile', requireAuth, async (req: AuthRequest, res) => {
+  const parsed = operatorProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid operator profile', issues: parsed.error.issues });
+    return;
+  }
+
+  try {
+    const supabase = requireSupabaseAdmin();
+    const { data: supplier } = await supabase
+      .from('suppliers')
+      .select('id, verification_status')
+      .eq('owner_user_id', req.authUser!.id)
+      .maybeSingle();
+    if (!supplier) {
+      res.status(404).json({ error: 'Complete supplier onboarding before creating an operator profile.' });
+      return;
+    }
+
+    const input = parsed.data;
+    if (
+      input.priceMinMinor !== null &&
+      input.priceMinMinor !== undefined &&
+      input.priceMaxMinor !== null &&
+      input.priceMaxMinor !== undefined &&
+      input.priceMaxMinor < input.priceMinMinor
+    ) {
+      res.status(400).json({ error: 'Maximum daily price cannot be lower than minimum daily price.' });
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from('operator_profiles')
+      .select('directory_status')
+      .eq('supplier_id', supplier.id)
+      .maybeSingle();
+    const directoryStatus =
+      existing?.directory_status === 'published'
+        ? 'published'
+        : input.submitForReview
+          ? 'submitted'
+          : 'draft';
+
+    const { data: profile, error } = await supabase
+      .from('operator_profiles')
+      .upsert({
+        supplier_id: supplier.id,
+        slug: input.slug,
+        cover_image_url: input.coverImageUrl ?? null,
+        cover_image_alt: sanitizePlainText(input.coverImageAlt, 240),
+        logo_url: input.logoUrl ?? null,
+        company_description: sanitizePlainText(input.companyDescription, 4000),
+        office_location: sanitizePlainText(input.officeLocation, 240) || null,
+        countries_served: input.countriesServed,
+        price_min_per_person_per_day_minor: input.priceMinMinor ?? null,
+        price_max_per_person_per_day_minor: input.priceMaxMinor ?? null,
+        currency_code: input.currencyCode,
+        price_tier: input.priceTier,
+        directory_status: directoryStatus,
+      }, { onConflict: 'supplier_id' })
+      .select('*')
+      .single();
+    if (error) throw error;
+
+    await supabase.from('operator_destinations').delete().eq('supplier_id', supplier.id);
+    if (input.destinationIds.length > 0) {
+      const { error: destinationError } = await supabase
+        .from('operator_destinations')
+        .insert(input.destinationIds.map((destinationId) => ({ supplier_id: supplier.id, destination_id: destinationId })));
+      if (destinationError) throw destinationError;
+    }
+
+    await supabase.from('operator_tour_categories').delete().eq('supplier_id', supplier.id);
+    if (input.categories.length > 0) {
+      const { error: categoryError } = await supabase
+        .from('operator_tour_categories')
+        .insert(input.categories.map((categorySlug) => ({ supplier_id: supplier.id, category_slug: categorySlug })));
+      if (categoryError) throw categoryError;
+    }
+
+    await recordAuditLog({
+      actorUserId: req.authUser!.id,
+      action: input.submitForReview ? 'OPERATOR_PROFILE_SUBMITTED' : 'OPERATOR_PROFILE_UPDATED',
+      resourceType: 'operator_profile',
+      resourceId: supplier.id,
+      afterState: { directoryStatus },
+      ipAddress: req.ip || null,
+    });
+
+    res.json({ profile });
+  } catch (err) {
+    handleRouteError(err, res);
+  }
+});
+
 suppliersRouter.get('/me', requireAuth, async (req: AuthRequest, res) => {
   try {
     const supabase = requireSupabaseAdmin();
@@ -192,7 +304,7 @@ suppliersRouter.get('/me', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const [docs, history, accounts, arrangements, agreements, experiences, accommodations, transport, slots] =
+    const [docs, history, accounts, arrangements, agreements, experiences, accommodations, transport, slots, profile, destinations, categories, enquiries] =
       await Promise.all([
         supabase.from('supplier_documents').select('*').eq('supplier_id', supplier.id).order('created_at', { ascending: false }),
         supabase
@@ -212,6 +324,18 @@ suppliersRouter.get('/me', requireAuth, async (req: AuthRequest, res) => {
           .eq('supplier_id', supplier.id)
           .order('slot_date', { ascending: true })
           .limit(100),
+        supabase.from('operator_profiles').select('*').eq('supplier_id', supplier.id).maybeSingle(),
+        supabase
+          .from('operator_destinations')
+          .select('destination_id, destinations(id, slug, name)')
+          .eq('supplier_id', supplier.id),
+        supabase.from('operator_tour_categories').select('*').eq('supplier_id', supplier.id),
+        supabase
+          .from('operator_enquiries')
+          .select('*')
+          .eq('supplier_id', supplier.id)
+          .order('created_at', { ascending: false })
+          .limit(100),
       ]);
 
     res.json({
@@ -227,6 +351,10 @@ suppliersRouter.get('/me', requireAuth, async (req: AuthRequest, res) => {
         transport: transport.data ?? [],
       },
       availabilitySlots: slots.data ?? [],
+      operatorProfile: profile.data ?? null,
+      operatorDestinations: (destinations.data ?? []).map((item) => item.destinations),
+      operatorCategories: (categories.data ?? []).map((item) => item.category_slug),
+      operatorEnquiries: enquiries.data ?? [],
     });
   } catch (err) {
     handleRouteError(err, res);

@@ -63,6 +63,12 @@ const SupplierPortalPage = lazy(() =>
 const AdminPortalPage = lazy(() =>
   import('./pages/AdminPortalPage').then((m) => ({ default: m.AdminPortalPage })),
 );
+const OperatorDirectoryPage = lazy(() =>
+  import('./pages/OperatorDirectoryPage').then((m) => ({ default: m.OperatorDirectoryPage })),
+);
+const OperatorProfilePage = lazy(() =>
+  import('./pages/OperatorProfilePage').then((m) => ({ default: m.OperatorProfilePage })),
+);
 
 function RouteLoadingFallback() {
   return (
@@ -117,6 +123,8 @@ export default function App() {
                     <Route path="/accommodation" element={<AccommodationPage />} />
                     <Route path="/accommodation/:slug" element={<AccommodationDetailPage />} />
                     <Route path="/transport" element={<TransportPage />} />
+                    <Route path="/operators" element={<OperatorDirectoryPage />} />
+                    <Route path="/operators/:slug" element={<OperatorProfilePage />} />
                     <Route path="/journal" element={<JournalPage />} />
                     <Route path="/journal/:slug" element={<JournalDetailPage />} />
                     <Route path="/contact" element={<ContactPage />} />

@@ -16,6 +16,7 @@ const DISCOVER_SUBLINKS = [
 ];
 
 const PRIMARY_LINKS = [
+  { label: 'Safari Operators', to: '/operators' },
   { label: 'Experiences', to: '/experiences' },
   { label: 'Packages', to: '/packages' },
   { label: 'Destinations', to: '/destinations' },

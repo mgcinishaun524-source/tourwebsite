@@ -242,12 +242,14 @@ export function HomePage() {
                   idx === heroSlideIdx ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 }`}
               >
-                <ResilientImage
-                  src={slide.image}
-                  alt={slide.alt}
-                  className="w-full h-full"
-                  priority={idx === 0}
-                />
+                {idx === heroSlideIdx && (
+                  <ResilientImage
+                    src={slide.image}
+                    alt={slide.alt}
+                    className="w-full h-full"
+                    priority
+                  />
+                )}
               </div>
             ))}
           </div>

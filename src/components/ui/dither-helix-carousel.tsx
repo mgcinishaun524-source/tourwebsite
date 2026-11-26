@@ -421,9 +421,11 @@ export function DitherHelixCarousel({
   ...props
 }: DitherHelixCarouselProps) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const sectionRef = React.useRef<HTMLElement>(null);
   const [active, setActive] = React.useState(0);
   const [reduced, setReduced] = React.useState(false);
   const [supported, setSupported] = React.useState(true);
+  const [nearViewport, setNearViewport] = React.useState(false);
 
   const settings = React.useRef({
     accent,
@@ -448,8 +450,29 @@ export function DitherHelixCarousel({
   }, []);
 
   React.useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    if (!('IntersectionObserver' in window)) {
+      setNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '320px 0px' },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  React.useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !count) return;
+    if (!canvas || !count || !nearViewport) return;
     const gl = canvas.getContext('webgl2', { alpha: false, antialias: false });
     if (!gl) {
       setSupported(false);
@@ -909,13 +932,14 @@ export function DitherHelixCarousel({
       gl.deleteProgram(compositeProgram);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sources, count, reduced, playEntry, Boolean(controlledProgressRef)]);
+  }, [sources, count, reduced, playEntry, Boolean(controlledProgressRef), nearViewport]);
 
   const activeItem = items[active];
 
   if (!supported) {
     return (
       <section
+        ref={sectionRef}
         aria-roledescription="carousel"
         aria-label={brand ?? 'Gallery'}
         className={cn('bg-[#FFFFFF] text-[#102D25] relative h-full w-full', className)}
@@ -927,6 +951,8 @@ export function DitherHelixCarousel({
               <img
                 src={entry.image}
                 alt={entry.title}
+                loading="lazy"
+                decoding="async"
                 className="bg-muted w-full rounded-xl object-cover"
                 style={{ aspectRatio: cardRatio }}
               />
@@ -939,6 +965,7 @@ export function DitherHelixCarousel({
 
   return (
     <section
+      ref={sectionRef}
       aria-roledescription="carousel"
       aria-label={brand ?? 'Gallery'}
       className={cn(

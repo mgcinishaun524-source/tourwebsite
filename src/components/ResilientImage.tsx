@@ -40,7 +40,7 @@ export function ResilientImage({
         alt={alt}
         referrerPolicy="no-referrer"
         loading={priority ? 'eager' : 'lazy'}
-        decoding={priority ? 'sync' : 'async'}
+        decoding="async"
         fetchPriority={priority ? 'high' : 'auto'}
         onError={() => setHasError(true)}
         className={imgClassName}

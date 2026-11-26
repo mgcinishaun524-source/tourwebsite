@@ -32,16 +32,16 @@ export const BRAND_CONFIG = {
 } as const;
 
 export const IMAGE_ASSETS = {
-  heroFalls: '/src/assets/images/hero_victoria_falls_1795523621988.jpg',
-  helicopterFlight: '/src/assets/images/exp_helicopter_flight_1795523622428.jpg',
-  zambeziCruise: '/src/assets/images/exp_zambezi_cruise_1795523622508.jpg',
-  safariWildlife: '/src/assets/images/exp_safari_wildlife_1795523622679.jpg',
-  whiteWaterRafting: '/src/assets/images/exp_white_water_rafting_1795523623369.jpg',
-  rainforestWalk: '/src/assets/images/exp_rainforest_walk_1795523624060.jpg',
-  culturalVillage: '/src/assets/images/exp_cultural_village_1795523623617.jpg',
-  luxuryLodge: '/src/assets/images/accom_luxury_lodge_1795523624271.jpg',
-  safariCamp: '/src/assets/images/accom_safari_camp_1795523625065.jpg',
-  livingstoneIsland: '/src/assets/images/dest_livingstone_island_1795523625695.jpg',
-  luxuryTransfer: '/src/assets/images/transport_luxury_transfer_1795523625914.jpg',
-  journalMistCanopy: '/src/assets/images/journal_mist_canopy_1795523627531.jpg',
+  heroFalls: '/assets/images/hero_victoria_falls_1795523621988.jpg',
+  helicopterFlight: '/assets/images/exp_helicopter_flight_1795523622428.jpg',
+  zambeziCruise: '/assets/images/exp_zambezi_cruise_1795523622508.jpg',
+  safariWildlife: '/assets/images/exp_safari_wildlife_1795523622679.jpg',
+  whiteWaterRafting: '/assets/images/exp_white_water_rafting_1795523623369.jpg',
+  rainforestWalk: '/assets/images/exp_rainforest_walk_1795523624060.jpg',
+  culturalVillage: '/assets/images/exp_cultural_village_1795523623617.jpg',
+  luxuryLodge: '/assets/images/accom_luxury_lodge_1795523624271.jpg',
+  safariCamp: '/assets/images/accom_safari_camp_1795523625065.jpg',
+  livingstoneIsland: '/assets/images/dest_livingstone_island_1795523625695.jpg',
+  luxuryTransfer: '/assets/images/transport_luxury_transfer_1795523625914.jpg',
+  journalMistCanopy: '/assets/images/journal_mist_canopy_1795523627531.jpg',
 } as const;

@@ -390,7 +390,7 @@ suppliersRouter.post('/me/listings', requireAuth, async (req: AuthRequest, res) 
             region_tag: 'Zambezi Basin · Zimbabwe',
             short_intro: 'Primary falls rim and Zambezi National Park corridor.',
             overview: 'Verified destination corridor managed by TRANSEND TOURS (PRIVATE) LIMITED.',
-            hero_image_url: '/src/assets/images/hero_victoria_falls_1795523621988.jpg',
+            hero_image_url: '/assets/images/hero_victoria_falls_1795523621988.jpg',
             hero_image_alt: 'Transend Tours mist plume above Zambezi gorge',
             publication_status: 'published',
           })
@@ -471,7 +471,7 @@ suppliersRouter.post('/me/listings', requireAuth, async (req: AuthRequest, res) 
         price_minor: input.priceMinor,
         currency_code: input.currencyCode,
         max_passengers: input.maxCapacity,
-        image_url: '/src/assets/images/transport_luxury_transfer_1795523625914.jpg',
+        image_url: '/assets/images/transport_luxury_transfer_1795523625914.jpg',
         image_alt: sanitizePlainText(input.name, 140),
         publication_status: 'pending_review',
       })
